@@ -1,9 +1,16 @@
-/** Given the provided ACLs, and user, find the ACLs that the user has subscribe (or publish) permissions for. */
+/**
+ * Given the provided ACLs, and user, find the ACLs that the user has subscribe (or publish) permissions for.
+ * @param acls - The list of ACLs that could apply to a topic
+ * @param user - The user object
+ * @param client_id - The client_id of the user
+ * @param publish - Whether to check for publish or subscribe permissions
+ */
 export function findTopicsForUser(acls, user, client_id, publish = false) {
 	return acls.map(acl => {
 		const acl_groups = acl[publish ? 'publishers' : 'subscribers'];
 		let user_groups = user.authGroups || user.role?.role;
-		if (user_groups && !Array.isArray(user_groups)) user_groups = [user_groups];
+		// It appears that the convention for auth groups is to use a semicolon to separate groups
+		if (user_groups && !Array.isArray(user_groups)) user_groups = user_groups.split(';');
 		if (acl_groups?.some(group => user_groups.includes(group))) {
 			return acl.topicFilter.replace(/\/%u/g, `/${user.username}`).replace(/\/%c/g, `/${client_id}`).split('/');
 		}
