@@ -11,7 +11,7 @@ export function findTopicsForUser(acls, user, client_id, publish = false) {
 		let user_groups = user.authGroups || user.role?.role;
 		// It appears that the convention for auth groups is to use a semicolon to separate groups
 		if (user_groups && !Array.isArray(user_groups)) user_groups = user_groups.split(';');
-		if (acl_groups?.some(group => user_groups.includes(group))) {
+		if (acl_groups?.some(group => user_groups.includes(group) || (!publish && acl.anonymousSubscriber))) {
 			return acl.topicFilter.replace(/\/%u/g, `/${user.username}`).replace(/\/%c/g, `/${client_id}`).split('/');
 		}
 	}).filter(topic => topic);
