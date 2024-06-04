@@ -68,9 +68,9 @@ function applyPermissions(path, { resource, acls }) {
 		 */
 		allowRead(user, query, context) {
 			const topic = context?.topic;
-			const id = topic?.split('/');
+			let id = topic?.split('/');
 			if(!id) {
-				return false;
+				id = [];
 			}
 			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, false);
 			if (mqttPermissionCheck(id, allowed_topics)) {
