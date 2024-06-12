@@ -58,6 +58,9 @@ export function startMonitoring(ensureTable) {
 		});
 	});
 	server.mqtt.events.on('error', async (error, socket, packet, session) => {
+		if(error.message === 'Unauthorized access to resource') {
+			server.recordAnalytics(true, "acl-fail", packet.topic);
+		}
 		await SYS_CON.publish('errors', {
 			timestamp: Date.now(),
 			remoteAddress: socket?.remoteAddress,

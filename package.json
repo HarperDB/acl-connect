@@ -1,6 +1,6 @@
 {
   "name": "@harperdb/acl-connect",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A component for defining pub/sub (MQTT) topics and their access control lists (ACLs) in HarperDB",
   "type": "module"
 }
