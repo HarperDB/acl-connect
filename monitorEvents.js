@@ -50,7 +50,7 @@ export function startMonitoring(ensureTable) {
 			remoteAddress: socket.remoteAddress,
 			remotePort: socket.remotePort,
 			type: 'auth-failed',
-			error: error.message,
+			error: error?.message,
 			instance_name: NODE_NAME,
 			clientId: session.clientId,
 			userName: session.username,
@@ -66,7 +66,7 @@ export function startMonitoring(ensureTable) {
 			remoteAddress: socket?.remoteAddress,
 			remotePort: socket?.remotePort,
 			type: 'error',
-			error: error.message,
+			error: error?.message,
 			instance_name: NODE_NAME,
 			clientId: session?.clientId,
 			userName: session?.username
