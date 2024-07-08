@@ -14,8 +14,8 @@ export function startMonitoring(ensureTable) {
 	server.mqtt.events.on('connection', async (socket) => {
 		await SYS_CON.publish(['monitor', 'con', 'connects'], {
 			timestamp: Date.now(),
-			remoteAddress: socket.remoteAddress,
-			remotePort: socket.remotePort,
+			remoteAddress: socket?.remoteAddress,
+			remotePort: socket?.remotePort,
 			type: 'connecting',
 			instance_name: NODE_NAME
 		});
@@ -23,20 +23,20 @@ export function startMonitoring(ensureTable) {
 	server.mqtt.events.on('connected', async (session, socket) => {
 		await SYS_CON.publish('connects', {
 			timestamp: Date.now(),
-			remoteAddress: socket.remoteAddress,
-			remotePort: socket.remotePort,
+			remoteAddress: socket?.remoteAddress,
+			remotePort: socket?.remotePort,
 			type: 'connected',
 			instance_name: NODE_NAME,
-			clientId: session.sessionId,
-			userName: session.user.username,
-			authGroups: session.user.authGroups
+			clientId: session?.sessionId,
+			userName: session?.user?.username,
+			authGroups: session?.user?.authGroups
 		});
 	});
 	server.mqtt.events.on('disconnected', async (session, socket) => {
 		await SYS_CON.publish('drops', {
 			timestamp: Date.now(),
-			remoteAddress: socket.remoteAddress,
-			remotePort: socket.remotePort,
+			remoteAddress: socket?.remoteAddress,
+			remotePort: socket?.remotePort,
 			type: 'disconnected',
 			instance_name: NODE_NAME,
 			clientId: session?.sessionId,
@@ -47,14 +47,14 @@ export function startMonitoring(ensureTable) {
 	server.mqtt.events.on('auth-failed', async (session, socket, error) => {
 		await SYS_CON.publish('errors', {
 			timestamp: Date.now(),
-			remoteAddress: socket.remoteAddress,
-			remotePort: socket.remotePort,
+			remoteAddress: socket?.remoteAddress,
+			remotePort: socket?.remotePort,
 			type: 'auth-failed',
 			error: error?.message,
 			instance_name: NODE_NAME,
-			clientId: session.clientId,
-			userName: session.username,
-			password: session.password.toString()
+			clientId: session?.clientId,
+			userName: session?.username,
+			password: session?.password?.toString()
 		});
 	});
 	server.mqtt.events.on('error', async (error, socket, packet, session) => {
