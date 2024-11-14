@@ -102,6 +102,17 @@ function applyPermissions(path, { resource, acls }) {
 			}
 			return super.allowCreate(user);
 		}
+
+		/**
+		 * Check if the user is allowed to update the topic (resource)
+		 * @param user
+		 * @param query
+		 * @param context
+		 * @return {*|boolean}
+		 */
+		allowUpdate(user, query, context) {
+			return this.allowCreate(user, query, context);
+		}
 	}
 }
 
