@@ -111,20 +111,7 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {*|boolean}
 		 */
 		allowUpdate(user, query, context) {
-			let id = this.getId();
-			if (!Array.isArray(id)) {
-				if (!id) {
-					id = [];
-				} else {
-					id = [id];
-				}
-			}
-			id = [...path, ...id];
-			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, true);
-			if (mqttPermissionCheck(id, allowed_topics)) {
-				return true;
-			}
-			return super.allowUpdate(user);
+			return this.allowCreate(user, query, context);
 		}
 	}
 }
