@@ -1,10 +1,11 @@
 # HarperDB ACL-Connect
 
-This component allows you define a set of topics for pub/sub (MQTT) with ACLs specifying permissions. To use this, you
-should add this extension to your application's config.yaml:
+This component allows you define a set of topics for pub/sub (MQTT) with ACLs specifying permissions.
+
+To use this, add `@harperdb/acl-connect` to your projects dependencies and then add this extension to your application's config.yaml:
 ```yaml
 acl-connect:
-  package: harperdb-acl-connect
+  package: "@harperdb/acl-connect"
   database: data # The database to use for pub/sub
   file: connect.json
 ```
