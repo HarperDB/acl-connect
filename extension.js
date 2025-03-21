@@ -87,20 +87,7 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {*|boolean}
 		 */
 		allowCreate(user, query, context) {
-			let id = this.getId();
-			if (!Array.isArray(id)) {
-				if (!id) {
-					id = [];
-				} else {
-					id = [id];
-				}
-			}
-			id = [...path, ...id];
-			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, true);
-			if (mqttPermissionCheck(id, allowed_topics)) {
-				return true;
-			}
-			return super.allowCreate(user);
+			return this._allowUpdateAndCreate(user, query, context) || super.allowCreate(user);
 		}
 
 		/**
@@ -111,6 +98,18 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {*|boolean}
 		 */
 		allowUpdate(user, query, context) {
+			return this._allowUpdateAndCreate(user, query, context) || super.allowUpdate(user);
+		}
+
+		/**
+		 * Check if the user is allowed to publish and update the topic (resource)
+		 * @private
+		 * @param user
+		 * @param query
+		 * @param context
+		 * @return {boolean}
+		 */
+		_allowUpdateAndCreate(user, query, context) {
 			let id = this.getId();
 			if (!Array.isArray(id)) {
 				if (!id) {
@@ -121,10 +120,7 @@ function applyPermissions(path, { resource, acls }) {
 			}
 			id = [...path, ...id];
 			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, true);
-			if (mqttPermissionCheck(id, allowed_topics)) {
-				return true;
-			}
-			return super.allowUpdate(user);
+			return mqttPermissionCheck(id, allowed_topics);
 		}
 	}
 }
