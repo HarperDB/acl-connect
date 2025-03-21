@@ -23,7 +23,7 @@ export function start({ ensureTable, database, monitoring }) {
 				// If there is an existing exported resource, we will use that, trying for most specific first.
 				// This allows for an exported resource to be mapped to a sub-topic, which can be used to define
 				// separate sub-topics to have different table backings.
-				resource_path = path.slice(0,i).join('/');
+				resource_path = path.slice(0, i).join('/');
 				if (resource_path === '$SYS') {
 					// we specifically look for the special $SYS topic, which is used for monitoring, and setup monitoring
 					// on-demand if the user has defined an ACL for it
@@ -48,12 +48,12 @@ export function start({ ensureTable, database, monitoring }) {
 			if (!resource_entry) resources_to_permission.set(resource_path, resource_entry = { resource: resource_to_permission, acls: [] });
 			resource_entry.acls.push(acl);
 		}
-		for (let [ resource_path, resource_entry ] of resources_to_permission) {
+		for (let [resource_path, resource_entry] of resources_to_permission) {
 			// now apply the set of ACLs to the resource, extending the resource to define access
 			const new_resource_class = applyPermissions(resource_path.split('/'), resource_entry);
 			// And export the new resource class with permissions applied (potentially re-exporting user resource with
 			// permissions applied)
-			resources.set(resource_path, new_resource_class );
+			resources.set(resource_path, new_resource_class);
 		}
 	}
 }
@@ -69,7 +69,7 @@ function applyPermissions(path, { resource, acls }) {
 		allowRead(user, query, context) {
 			const topic = context?.topic;
 			let id = topic?.split('/');
-			if(!id) {
+			if (!id) {
 				id = [];
 			}
 			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, false);
@@ -87,20 +87,7 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {*|boolean}
 		 */
 		allowCreate(user, query, context) {
-			let id = this.getId();
-			if (!Array.isArray(id)) {
-				if (!id) {
-					id = [];
-				} else {
-					id = [id];
-				}
-			}
-			id = [...path, ...id];
-			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, true);
-			if (mqttPermissionCheck(id, allowed_topics)) {
-				return true;
-			}
-			return super.allowCreate(user);
+			return this._allowUpdateAndCreate(user, query, context) || super.allowCreate(user);
 		}
 
 		/**
@@ -111,7 +98,29 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {*|boolean}
 		 */
 		allowUpdate(user, query, context) {
-			return this.allowCreate(user, query, context);
+			return this._allowUpdateAndCreate(user, query, context) || super.allowUpdate(user);
+		}
+
+		/**
+		 * Check if the user is allowed to publish and update the topic (resource)
+		 * @private
+		 * @param user
+		 * @param query
+		 * @param context
+		 * @return {boolean}
+		 */
+		_allowUpdateAndCreate(user, query, context) {
+			let id = this.getId();
+			if (!Array.isArray(id)) {
+				if (!id) {
+					id = [];
+				} else {
+					id = [id];
+				}
+			}
+			id = [...path, ...id];
+			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, true);
+			return mqttPermissionCheck(id, allowed_topics);
 		}
 	}
 }
