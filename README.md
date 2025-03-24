@@ -29,3 +29,14 @@ And connect.json should be a JSON file with the following format:
 }
 ```
 Topics support substitution with `%u` for the user's username and `%c` for the client id. For example, a topic of `user/%u` would be translated to `user/smith` for a user with the username `smith`.
+
+
+### Anonymous Subscriptions
+In order for anonymous subscriptions to work correctly:
+
+`requireAuthentication` must be set to `false` in your harper config. For example:
+```yaml
+# In harperdb-config.yaml
+mqtt:
+    requireAuthentication: false
+```
