@@ -1,4 +1,38 @@
 /**
+ * Resolves the given partial topics into an array of topic levels.
+ * This function takes one or more topic parts, which can be strings, numbers, or arrays,
+ * and sanitizes them into a flat array of topic levels.
+ * 
+ * @param  {(string|number)[] | string | number} partialTopics - The topic parts to resolve.
+ * @returns {string[]} The sanitized topic levels as an array of strings.
+ */
+export const resolveTopic = (...partialTopics) => {
+	const topic = [];
+
+	// Iterate over each part of the provided topics
+	for (let part of partialTopics) {
+		// Skip undefined, null, or empty string values
+		if (part === undefined || part === null || part === '') continue;
+
+		// If the part is a string containing '/', split it into an array of levels
+		if (typeof part === 'string' && part.includes('/')) {
+			part = part.split('/');
+		}
+
+		// If the part is an array, recursively resolve its elements
+		if (Array.isArray(part)) {
+			topic.push(...resolveTopic(...part));
+		} else {
+			// Otherwise, add the part to the topic array
+			topic.push(part);
+		}
+	}
+
+	// Return the resolved topic levels as a flat array
+	return topic;
+}
+
+/**
  * Given the provided ACLs, and user, find the ACLs that the user has subscribe (or publish) permissions for.
  * @param acls - The list of ACLs that could apply to a topic
  * @param user - The user object
@@ -9,7 +43,7 @@ export function findTopicsForUser(acls, user, client_id, publish = false) {
 	return acls.map(acl => {
 		const acl_groups = acl[publish ? 'publishers' : 'subscribers'];
 		let user_groups = [];
-		if(user) {
+		if (user) {
 			user_groups = user.authGroups || user.role?.role;
 		}
 		// It appears that the convention for auth groups is to use a semicolon to separate groups

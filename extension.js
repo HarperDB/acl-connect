@@ -1,4 +1,4 @@
-import { findTopicsForUser, mqttPermissionCheck } from './permission.js';
+import { findTopicsForUser, mqttPermissionCheck, resolveTopic } from './permission.js';
 import { startMonitoring } from './monitorEvents.js';
 
 let sys_monitoring_table;
@@ -67,13 +67,9 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {*|boolean}
 		 */
 		allowRead(user, query, context) {
-			const topic = context?.topic;
-			let id = topic?.split('/');
-			if (!id) {
-				id = [];
-			}
+			const topic = resolveTopic(context?.topic);
 			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, false);
-			if (mqttPermissionCheck(id, allowed_topics)) {
+			if (mqttPermissionCheck(topic, allowed_topics)) {
 				return true;
 			}
 			return super.allowRead(user);
@@ -110,17 +106,9 @@ function applyPermissions(path, { resource, acls }) {
 		 * @return {boolean}
 		 */
 		_allowUpdateAndCreate(user, query, context) {
-			let id = this.getId();
-			if (!Array.isArray(id)) {
-				if (!id) {
-					id = [];
-				} else {
-					id = [id];
-				}
-			}
-			id = [...path, ...id];
+			const topic = resolveTopic(path, this.getId());
 			const allowed_topics = findTopicsForUser(acls, user, context?.session?.sessionId, true);
-			return mqttPermissionCheck(id, allowed_topics);
+			return mqttPermissionCheck(topic, allowed_topics);
 		}
 	}
 }
