@@ -1,4 +1,29 @@
 /**
+ * Resolves the given partial topics into an array of topic levels
+ * @param  {(string|number)[] | string | number} partialTopics 
+ * @returns {string[]} the sanitized topic levels
+ */
+export const resolveTopic = (...partialTopics) => {
+	const topic = [];
+
+	for (let part of partialTopics) {
+		if (part === undefined || part === null || part === '') continue;
+
+		if (typeof part === 'string' && part.includes('/')) {
+			part = part.split('/');
+		}
+
+		if (Array.isArray(part)) {
+			topic.push(...resolveTopic(...part));
+		} else {
+			topic.push(part);
+		}
+	}
+
+	return topic;
+}
+
+/**
  * Given the provided ACLs, and user, find the ACLs that the user has subscribe (or publish) permissions for.
  * @param acls - The list of ACLs that could apply to a topic
  * @param user - The user object
@@ -9,7 +34,7 @@ export function findTopicsForUser(acls, user, client_id, publish = false) {
 	return acls.map(acl => {
 		const acl_groups = acl[publish ? 'publishers' : 'subscribers'];
 		let user_groups = [];
-		if(user) {
+		if (user) {
 			user_groups = user.authGroups || user.role?.role;
 		}
 		// It appears that the convention for auth groups is to use a semicolon to separate groups
