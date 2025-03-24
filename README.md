@@ -34,11 +34,9 @@ Topics support substitution with `%u` for the user's username and `%c` for the c
 ### Anonymous Subscriptions
 In order for anonymous subscriptions to work correctly:
 
-1. `requireAuthentication` must be set to `false` in your harper config. For example:
+`requireAuthentication` must be set to `false` in your harper config. For example:
 ```yaml
 # In harperdb-config.yaml
 mqtt:
     requireAuthentication: false
 ```
-2. The session must be `clean` and the client ID must be empty 
-- If you use an mqtt client that automatically sets a random client ID, you may need to explicitly set it to an empty string
