@@ -42,7 +42,8 @@ mqtt:
 ```
 
 
-### System Channel ($SYS) Monitoring**
+
+### System Channel ($SYS) Monitoring
 The $SYS channel is a built-in, read-only namespace your MQTT broker uses to publish its own internal events (connections, disconnections, auth failures, errors, etc.).
 Clients can subscribe to $SYS/monitor/con/# to get a live JSON feed of every broker event, then feed those into dashboards, alerting systems, or auto-scaling logic.
 
