@@ -40,34 +40,39 @@ export const resolveTopic = (...partialTopics) => {
  * @param publish - Whether to check for publish or subscribe permissions
  */
 export function findTopicsForUser(acls, user, client_id, publish = false) {
-	return acls
-		.map(acl => {
-		const aclGroups = acl[publish ? 'publishers' : 'subscribers'];
-
-		// user groups can be array or semicolon-delimited string
-		let userGroups = [];
-		if (user?.authGroups) {
-			userGroups = Array.isArray(user.authGroups) ? user.authGroups : String(user.authGroups).split(';');
-		} else if (user?.role?.role) {
-			userGroups = Array.isArray(user.role.role) ? user.role.role : String(user.role.role).split(';');
-		}
-
-		const allowedByGroup =
-			Array.isArray(aclGroups) && aclGroups.some(g => userGroups.includes(g));
-
-		const allowedAnon = !publish && acl.anonymousSubscriber;
-
-		if (!allowedByGroup && !allowedAnon) return null;
-
-		// Apply %u (username) and %c (client id) replacements anywhere in the filter
-		const username = user?.username ?? '';
-		const filter = acl.topicFilter
-			.replaceAll('%u', username)
-			.replaceAll('%c', client_id ?? '');
-
-		return filter; // return STRING filter
-		})
-		.filter(Boolean);
+	const listKey = publish ? 'publishers' : 'subscribers';
+	const username = user?.username ?? '';
+  
+	// Build user groups array from authGroups or role.role; supports semicolon-delimited strings
+	let user_groups = [];
+	if (user?.authGroups != null) {
+	  user_groups = Array.isArray(user.authGroups)
+		? user.authGroups
+		: String(user.authGroups).split(';');
+	} else if (user?.role?.role != null) {
+	  user_groups = Array.isArray(user.role.role)
+		? user.role.role
+		: String(user.role.role).split(';');
+	}
+  
+	return (acls || [])
+	  .map(acl => {
+		const acl_groups = Array.isArray(acl[listKey]) ? acl[listKey] : [];
+  
+		const allowedByUser  = acl_groups.includes(username);
+		const allowedByGroup = acl_groups.some(g => user_groups.includes(g));
+		const allowedAnon    = !publish && acl.anonymousSubscriber === true;
+  
+		if (!allowedByUser && !allowedByGroup && !allowedAnon) return null;
+  
+		// Replace %u and %c anywhere in the filter (not just after a '/')
+		const filter = String(acl.topicFilter || '')
+		  .replaceAll('%u', username)
+		  .replaceAll('%c', client_id ?? '');
+  
+		return filter; // return as string filter
+	  })
+	  .filter(Boolean);
 }
 
 /**
