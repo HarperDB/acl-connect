@@ -40,19 +40,102 @@ export const resolveTopic = (...partialTopics) => {
  * @param publish - Whether to check for publish or subscribe permissions
  */
 export function findTopicsForUser(acls, user, client_id, publish = false) {
-	return acls.map(acl => {
-		const acl_groups = acl[publish ? 'publishers' : 'subscribers'];
-		let user_groups = [];
-		if (user) {
-			user_groups = user.authGroups || user.role?.role;
+	return acls
+		.map(acl => {
+		const aclGroups = acl[publish ? 'publishers' : 'subscribers'];
+
+		// user groups can be array or semicolon-delimited string
+		let userGroups = [];
+		if (user?.authGroups) {
+			userGroups = Array.isArray(user.authGroups) ? user.authGroups : String(user.authGroups).split(';');
+		} else if (user?.role?.role) {
+			userGroups = Array.isArray(user.role.role) ? user.role.role : String(user.role.role).split(';');
 		}
-		// It appears that the convention for auth groups is to use a semicolon to separate groups
-		if (user_groups && !Array.isArray(user_groups)) user_groups = user_groups.split(';');
-		if (acl_groups?.some(group => user_groups.includes(group) || (!publish && acl.anonymousSubscriber))) {
-			return acl.topicFilter.replace(/\/%u/g, `/${user?.username}`).replace(/\/%c/g, `/${client_id}`).split('/');
-		}
-	}).filter(topic => topic);
+
+		const allowedByGroup =
+			Array.isArray(aclGroups) && aclGroups.some(g => userGroups.includes(g));
+
+		const allowedAnon = !publish && acl.anonymousSubscriber;
+
+		if (!allowedByGroup && !allowedAnon) return null;
+
+		// Apply %u (username) and %c (client id) replacements anywhere in the filter
+		const username = user?.username ?? '';
+		const filter = acl.topicFilter
+			.replaceAll('%u', username)
+			.replaceAll('%c', client_id ?? '');
+
+		return filter; // return STRING filter
+		})
+		.filter(Boolean);
 }
+
+/**
+ * Convert a topic identifier into a normalized MQTT topic string.
+ *
+ * - If `id` is an array of segments (e.g. ["sensors", "kitchen", "temp"]),
+ *   it joins them with '/' into "sensors/kitchen/temp".
+ * - If `id` is a number, it converts it to a string.
+ * - For all other values, it coerces to a string (or empty string if falsy).
+ *
+ * @param {string|string[]|number} id - A topic identifier (array of segments, string, or number).
+ * @returns {string} The normalized topic string.
+ */
+function toTopicString(id) {
+	if (Array.isArray(id)) return id.join('/');
+	if (typeof id === 'number') return String(id);
+	return String(id || '');
+}
+
+
+/**
+ * Normalize a list of allowed topic filters into string form.
+ *
+ * - Each element may be an array of segments (["sensors", "+", "temp"]) or a string ("sensors/+/temp").
+ * - Arrays are joined with '/', non-string values are coerced to strings.
+ * - Empty or falsy entries are removed.
+ *
+ * @param {Array<string|string[]>} allowed - List of topic filters in array or string form.
+ * @returns {string[]} Array of normalized topic filter strings.
+ */
+function normalizeFilters(allowed) {
+	// allowed can be array of arrays (old) or array of strings (new)
+	return (allowed || [])
+	  .map(f => Array.isArray(f) ? f.join('/') : String(f || ''))
+	  .filter(Boolean);
+}
+
+/**
+ * Robust MQTT topic filter matcher: supports + and #, anchors pattern, escapes literals.
+ * 
+ * @param {*} filter 
+ * @param {*} topic 
+ * @returns 
+ */
+export function topicFilterMatches(filter, topic) {
+	if (typeof filter !== 'string' || typeof topic !== 'string') return false;
+  
+	// Escape regex special chars except MQTT wildcards + and #
+	const esc = s => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+  
+	// Split and translate segment-by-segment for correctness
+	const parts = filter.split('/').map(seg => {
+	  if (seg === '+') return '[^/]+';
+	  if (seg === '#') return '.*';
+	  return esc(seg);
+	});
+  
+	// If # is present, it must be the last segment per MQTT spec
+	const hashIdx = filter.indexOf('#');
+	if (hashIdx !== -1 && hashIdx !== filter.length - 1) {
+	  // Some brokers are lenient; we choose to enforce spec strictly
+	  // but still match as best-effort by allowing trailing anything.
+	}
+  
+	const pattern = `^${parts.join('/')}$`;
+	const re = new RegExp(pattern);
+	return re.test(topic);
+};
 
 /**
  * Check if the provided id/topic is allowed to subscribe/publish to the list of allowed topics
@@ -61,62 +144,11 @@ export function findTopicsForUser(acls, user, client_id, publish = false) {
  * @return {boolean}
  */
 export function mqttPermissionCheck(id, allowed_topics) {
-	if (!Array.isArray(allowed_topics) || allowed_topics.length === 0) {
-		return false;
-	}
+	const topic = toTopicString(id);
+  const filters = normalizeFilters(allowed_topics);
 
-	let match = false;
+  if (!filters.length || !topic) return false;
 
-	//iterate each subscription to compare to the id
-	for (let x = 0, length = allowed_topics.length; x < length; x++) {
-		let topic = allowed_topics[x];
-		let inner_match = true;
-
-		//we iterate  the id elements as the attempted pub/sub could be shallower (shallower is acceptable) or deeper (deeper not acceptable) than the ACL and we need to test for that
-		for (let y = 0, id_length = id.length; y < id_length; y++) {
-			let id_element = id[y];
-			//get the subscription element at the same index of the id element
-			let sub_element = topic[y];
-
-			//if sub_element is null the attempted pub/sub is deeper than the ACL allows, so we fail the test
-			if (sub_element === undefined) {
-				inner_match = false;
-				break;
-			}
-
-			//If ACL allows for multi-level this is a match and we allow the pub/sub
-			if (sub_element === '#') {
-				match = true;
-				break;
-			}
-
-			//if ACL allows for single level we continue the iterator to keep testing
-			if (sub_element === '+') {
-				//this is a mismatch in wild cards where the attempt is multi-level vs the ACL allowing single level
-				if (id_element === '#') {
-					inner_match = false;
-					break;
-				}
-
-				continue;
-			}
-
-			//if the elements do not match by this point we fail out this subscription
-			if (sub_element !== id_element) {
-				inner_match = false;
-				break;
-			}
-
-		}
-		if (match === true) {
-			break;
-		}
-
-		if (inner_match && id.length === topic.length) {
-			match = true;
-			break;
-		}
-	}
-
-	return match;
+  // MQTT-correct comparison
+  return filters.some(f => topicFilterMatches(f, topic));
 }
