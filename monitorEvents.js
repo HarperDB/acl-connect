@@ -54,7 +54,6 @@ export function startMonitoring(ensureTable) {
 			instance_name: NODE_NAME,
 			clientId: session?.clientId,
 			userName: session?.username,
-			password: session?.password?.toString()
 		});
 	});
 	server.mqtt.events.on('error', async (error, socket, packet, session) => {
