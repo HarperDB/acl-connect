@@ -1,4 +1,4 @@
-# HarperDB ACL-Connect
+# Harper ACL-Connect
 
 This component allows you define a set of topics for pub/sub (MQTT) with ACLs specifying permissions.
 
@@ -36,7 +36,7 @@ In order for anonymous subscriptions to work correctly:
 
 `requireAuthentication` must be set to `false` in your harper config. For example:
 ```yaml
-# In harperdb-config.yaml
+# In harper.yaml (or harperdb-config.yaml for older installs)
 mqtt:
     requireAuthentication: false
 ```
