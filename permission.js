@@ -119,20 +119,24 @@ export function topicFilterMatches(filter, topic) {
 	const esc = s => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
   
 	// Split and translate segment-by-segment for correctness
-	const parts = filter.split('/').map(seg => {
+	const segments = filter.split('/');
+	const parts = segments.map(seg => {
 	  if (seg === '+') return '[^/]+';
 	  if (seg === '#') return '.*';
 	  return esc(seg);
 	});
-  
+
 	// If # is present, it must be the last segment per MQTT spec
-	const hashIdx = filter.indexOf('#');
-	if (hashIdx !== -1 && hashIdx !== filter.length - 1) {
-	  // Some brokers are lenient; we choose to enforce spec strictly
-	  // but still match as best-effort by allowing trailing anything.
+	// Per MQTT 3.1.1 §4.7.1.2: 'sport/#' matches 'sport', 'sport/', 'sport/tennis', etc.
+	// When the filter ends with '/#', the parent topic itself must also match,
+	// so we replace the trailing '/.*' with '(/.*)?'.
+	let pattern;
+	if (segments.length >= 2 && segments[segments.length - 1] === '#') {
+	  const baseParts = parts.slice(0, -1);
+	  pattern = `^${baseParts.join('/')}(/.*)?$`;
+	} else {
+	  pattern = `^${parts.join('/')}$`;
 	}
-  
-	const pattern = `^${parts.join('/')}$`;
 	const re = new RegExp(pattern);
 	return re.test(topic);
 };

@@ -1,7 +1,14 @@
 {
   "name": "@harperdb/acl-connect",
   "version": "1.0.10",
-  "description": "A component for defining pub/sub (MQTT) topics and their access control lists (ACLs) in HarperDB",
+  "description": "A component for defining pub/sub (MQTT) topics and their access control lists (ACLs) in Harper",
   "type": "module",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "scripts": {
+    "test:integration": "harper-integration-test-run integrationTests/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@harperfast/integration-testing": "^0.4.0",
+    "typescript": "^6.0.3"
+  }
 }
